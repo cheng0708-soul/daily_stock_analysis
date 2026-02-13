@@ -1,9 +1,9 @@
 name: 每日股票分析
 
 on:
-  # 定时触发 - 每天北京时间 18:00 (UTC 10:00)
+  # 定时触发 - 每天北京时间 08:00 (UTC 00:00)
   schedule:
-    - cron: '0 10 * * 1-5'     # 周一到周五，UTC 10:00 = 北京时间 18:00
+    - cron: '0 0 * * 1-5'     # 周一到周五，UTC 00:00 = 北京时间 08:00
   
   # 手动触发
   workflow_dispatch:
@@ -50,8 +50,30 @@ jobs:
       - name: 创建必要目录
         run: |
           mkdir -p data logs reports
-      
+
+      - name: 判断是否A股交易日（休市跳过发送）
+        id: trading_day
+        run: |
+          python - <<'PY'
+          import os
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
+          import pandas as pd
+          import akshare as ak
+
+          today = datetime.now(ZoneInfo('Asia/Shanghai')).date()
+          df = ak.tool_trade_date_hist_sina()
+          trade_days = set(pd.to_datetime(df['trade_date']).dt.date)
+          is_trade_day = today in trade_days
+
+          print(f"北京时间日期: {today}")
+          print(f"是否交易日: {is_trade_day}")
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as f:
+              f.write(f"is_trade_day={'true' if is_trade_day else 'false'}\\n")
+          PY
+
       - name: 执行股票分析
+        if: ${{ steps.trading_day.outputs.is_trade_day == 'true' || github.event_name == 'workflow_dispatch' }}
         env:
           # ==========================================
           # AI 配置
