@@ -23,6 +23,7 @@ import smtplib
 import re
 import time
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from typing import List, Dict, Any, Optional
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -44,6 +45,11 @@ from src.formatters import format_feishu_markdown, markdown_to_html_document
 from bot.models import BotMessage
 
 logger = logging.getLogger(__name__)
+
+
+def now_bj() -> datetime:
+    """统一使用北京时间，避免 GitHub Runner 默认 UTC 导致时间显示偏差。"""
+    return datetime.now(ZoneInfo("Asia/Shanghai"))
 
 
 # WeChat Work image msgtype limit ~2MB (base64 payload)
@@ -416,13 +422,13 @@ class NotificationService:
             Markdown 格式的日报内容
         """
         if report_date is None:
-            report_date = datetime.now().strftime('%Y-%m-%d')
+            report_date = now_bj().strftime('%Y-%m-%d')
 
         # 标题
         report_lines = [
             f"# 📅 {report_date} 股票智能分析报告",
             "",
-            f"> 共分析 **{len(results)}** 只股票 | 报告生成时间：{datetime.now().strftime('%H:%M:%S')}",
+            f"> 共分析 **{len(results)}** 只股票 | 报告生成时间：{now_bj().strftime('%H:%M:%S')}",
             "",
             "---",
             "",
@@ -599,7 +605,7 @@ class NotificationService:
         # 底部信息（去除免责声明）
         report_lines.extend([
             "",
-            f"*报告生成时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*",
+            f"*报告生成时间：{now_bj().strftime('%Y-%m-%d %H:%M:%S')}*",
         ])
         
         return "\n".join(report_lines)
@@ -689,7 +695,7 @@ class NotificationService:
             Markdown 格式的决策仪表盘日报
         """
         if report_date is None:
-            report_date = datetime.now().strftime('%Y-%m-%d')
+            report_date = now_bj().strftime('%Y-%m-%d')
 
         # 按评分排序（高分在前）
         sorted_results = sorted(results, key=lambda x: x.sentiment_score, reverse=True)
@@ -934,7 +940,7 @@ class NotificationService:
         # 底部（去除免责声明）
         report_lines.extend([
             "",
-            f"*报告生成时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*",
+            f"*报告生成时间：{now_bj().strftime('%Y-%m-%d %H:%M:%S')}*",
         ])
         
         return "\n".join(report_lines)
@@ -951,7 +957,7 @@ class NotificationService:
         Returns:
             精简版决策仪表盘
         """
-        report_date = datetime.now().strftime('%Y-%m-%d')
+        report_date = now_bj().strftime('%Y-%m-%d')
         
         # 按评分排序
         sorted_results = sorted(results, key=lambda x: x.sentiment_score, reverse=True)
@@ -1076,7 +1082,7 @@ class NotificationService:
                 lines.append("")
         
         # 底部
-        lines.append(f"*生成时间: {datetime.now().strftime('%H:%M')}*")
+        lines.append(f"*生成时间: {now_bj().strftime('%H:%M')}*")
         
         content = "\n".join(lines)
         
@@ -1092,7 +1098,7 @@ class NotificationService:
         Returns:
             精简版 Markdown 内容
         """
-        report_date = datetime.now().strftime('%Y-%m-%d')
+        report_date = now_bj().strftime('%Y-%m-%d')
 
         # 按评分排序
         sorted_results = sorted(results, key=lambda x: x.sentiment_score, reverse=True)
@@ -1158,7 +1164,7 @@ class NotificationService:
         Returns:
             Markdown 格式的单股报告
         """
-        report_date = datetime.now().strftime('%Y-%m-%d %H:%M')
+        report_date = now_bj().strftime('%Y-%m-%d %H:%M')
         signal_text, signal_emoji, _ = self._get_signal_level(result)
         dashboard = result.dashboard if hasattr(result, 'dashboard') and result.dashboard else {}
         core = dashboard.get('core_conclusion', {}) if dashboard else {}
@@ -1897,7 +1903,7 @@ class NotificationService:
         try:
             # 生成主题
             if subject is None:
-                date_str = datetime.now().strftime('%Y-%m-%d')
+                date_str = now_bj().strftime('%Y-%m-%d')
                 subject = f"📈 股票智能分析报告 - {date_str}"
             
             # 将 Markdown 转换为简单 HTML
@@ -1967,7 +1973,7 @@ class NotificationService:
         password = self._email_config['password']
         receivers = receivers or self._email_config['receivers']
         try:
-            date_str = datetime.now().strftime('%Y-%m-%d')
+            date_str = now_bj().strftime('%Y-%m-%d')
             subject = f"📈 股票智能分析报告 - {date_str}"
             msg = MIMEMultipart('related')
             msg['Subject'] = Header(subject, 'utf-8')
@@ -2269,7 +2275,7 @@ class NotificationService:
         
         # 处理消息标题
         if title is None:
-            date_str = datetime.now().strftime('%Y-%m-%d')
+            date_str = now_bj().strftime('%Y-%m-%d')
             title = f"📈 股票分析报告 - {date_str}"
         
         # Pushover 消息限制 1024 字符
@@ -2906,7 +2912,7 @@ class NotificationService:
 
         # 处理消息标题
         if title is None:
-            date_str = datetime.now().strftime('%Y-%m-%d')
+            date_str = now_bj().strftime('%Y-%m-%d')
             title = f"📈 股票分析报告 - {date_str}"
 
         try:
@@ -2971,7 +2977,7 @@ class NotificationService:
 
         # 处理消息标题
         if title is None:
-            date_str = datetime.now().strftime('%Y-%m-%d')
+            date_str = now_bj().strftime('%Y-%m-%d')
             title = f"📈 股票分析报告 - {date_str}"
 
         try:
@@ -3376,7 +3382,7 @@ class NotificationService:
         from pathlib import Path
         
         if filename is None:
-            date_str = datetime.now().strftime('%Y%m%d')
+            date_str = now_bj().strftime('%Y%m%d')
             filename = f"report_{date_str}.md"
         
         # 确保 reports 目录存在（使用项目根目录下的 reports）
